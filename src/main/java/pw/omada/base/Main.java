@@ -1,31 +1,104 @@
-package com.example.examplemod;
+package pw.omada.base;
 
-import net.minecraft.init.Blocks;
+import com.mojang.realmsclient.gui.ChatFormatting;
+import pw.omada.base.command.CommandManager;
+import pw.omada.base.module.Module;
+import pw.omada.base.util.misc.FileUtils;
+import pw.omada.base.util.render.JColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import org.apache.logging.log4j.Logger;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.InputEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.Display;
 
-@Mod(modid = ExampleMod.MODID, name = ExampleMod.NAME, version = ExampleMod.VERSION)
-public class ExampleMod
-{
-    public static final String MODID = "examplemod";
-    public static final String NAME = "Example Mod";
-    public static final String VERSION = "1.0";
+@Mod(modid = Main.MOD_ID, name = Main.NAME, version = Main.VERSION)
+public class Main {
 
-    private static Logger logger;
+    public static ModuleManager moduleManager;
 
-    @EventHandler
-    public void preInit(FMLPreInitializationEvent event)
-    {
-        logger = event.getModLog();
+    public static Hud hud;
+    public static KeyBinding ClickGUI;
+    public static CommandManager commandManager;
+
+    public static final String MOD_ID = "base";
+    public static final String NAME = "Base";
+
+    public static Minecraft mc = Minecraft.getMinecraft();
+
+    public static final JColor CLIENT_COLOR = new JColor(255, 255, 255);
+    
+    @Mod.Instance
+    public Main instance;
+
+
+    @Mod.EventHandler
+    public void PreInit(FMLPreInitializationEvent event) {
     }
 
-    @EventHandler
-    public void init(FMLInitializationEvent event)
-    {
-        // some example code
-        logger.info("DIRT BLOCK >> {}", Blocks.DIRT.getRegistryName());
+    public void initFilesystem() {
+        FileUtils.createDirectory();
+        FileUtils.loadAll();
+    }
+
+    @Mod.EventHandler
+    public void init(FMLPreInitializationEvent event) {
+
+        MinecraftForge.EVENT_BUS.register(instance);
+        MinecraftForge.EVENT_BUS.register(new Hud());
+
+        Display.setTitle(Main.NAME + " " + Main.VERSION);
+
+        moduleManager = new ModuleManager();
+        commandManager = new CommandManager();
+
+        this.initFilesystem();
+    }
+
+    @Mod.EventHandler
+    public void post(FMLPostInitializationEvent event) {
+
+    }
+
+
+    @SubscribeEvent
+    public void key(InputEvent.KeyInputEvent e) {
+        if(Minecraft.getMinecraft().world == null || Minecraft.getMinecraft().player == null)
+            return;
+        try {
+            if (Keyboard.isCreated()) {
+                if (Keyboard.getEventKeyState()) {
+                    int keyCode = Keyboard.getEventKey();
+                    if (keyCode <= 0)
+                        return;
+                    for (Module m : moduleManager.modules) {
+                        if (m.getKey() == keyCode && keyCode > 0) {
+                            m.toggle();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {ex.printStackTrace();}
+    }
+
+    public static void sendMessage(String msg) {
+
+        if (Minecraft.getMinecraft().world == null || Minecraft.getMinecraft().player == null) return;
+
+        Minecraft.getMinecraft().player.sendMessage(new TextComponentString( ChatFormatting.RESET + "[" + Main.NAME + "] " + msg));
+    }
+
+    @SubscribeEvent
+    public void displayGuiScreen(TickEvent.ClientTickEvent event) {
+        if (Main.ClickGUI.isPressed()) {
+            mc.displayGuiScreen(new ClickGui());
+        }
     }
 }
