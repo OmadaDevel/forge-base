@@ -24,8 +24,6 @@ public class Main {
 
     public static ModuleManager moduleManager;
 
-    public static Hud hud;
-    public static KeyBinding ClickGUI;
     public static CommandManager commandManager;
 
     public static final String MOD_ID = "base";
